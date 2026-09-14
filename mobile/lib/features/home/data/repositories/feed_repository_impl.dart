@@ -148,9 +148,10 @@ class FeedRepositoryImpl implements FeedRepository {
 
     var entity = model.toEntity().copyWith(isSaved: user.isStorySaved(id));
 
-    // Enrich with Groq if key is saved locally on device
-    if (user.hasGroqKey) {
-      final groq = GroqService(apiKey: user.groqApiKey!);
+    // Enrich with Groq if key is in secure storage
+    final groqKey = await user.getGroqApiKey();
+    if (groqKey != null && groqKey.isNotEmpty) {
+      final groq = GroqService(apiKey: groqKey);
       final whyItMatters = await groq.enrichStory(
         title: entity.title,
         summary: entity.summary,

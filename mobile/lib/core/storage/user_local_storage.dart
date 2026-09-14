@@ -1,24 +1,25 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'secure_key_store.dart';
 
-/// Offline-first user profile — everything stored locally on device.
+/// Offline-first user profile — preferences local, API key in secure storage.
 class UserLocalStorage {
-  UserLocalStorage(this._prefs);
+  UserLocalStorage(this._prefs, this._secureKeys);
 
   final SharedPreferences _prefs;
+  final SecureKeyStore _secureKeys;
 
   static const _keyOnboardingComplete = 'onboarding_complete';
   static const _keyName = 'user_name';
   static const _keyInterests = 'user_interests';
   static const _keySavedStories = 'saved_story_ids';
   static const _keyLastActiveAt = 'last_active_at';
-  static const _keyGroqApiKey = 'groq_api_key';
   static const _keyContentDepth = 'content_depth';
   static const _keyReadStoryIds = 'read_story_ids';
 
   static Future<UserLocalStorage> create() async {
     final prefs = await SharedPreferences.getInstance();
-    return UserLocalStorage(prefs);
+    return UserLocalStorage(prefs, SecureKeyStore());
   }
 
   // ── Onboarding ──────────────────────────────────────────────
@@ -56,19 +57,13 @@ class UserLocalStorage {
 
   Future<void> setContentDepth(String depth) => _prefs.setString(_keyContentDepth, depth);
 
-  // ── Groq API key (stored locally on device) ─────────────────
+  // ── Groq API key (secure storage — Keychain / Keystore) ─────
 
-  String? get groqApiKey => _prefs.getString(_keyGroqApiKey);
+  Future<String?> getGroqApiKey() => _secureKeys.getGroqApiKey();
 
-  bool get hasGroqKey => groqApiKey != null && groqApiKey!.isNotEmpty;
+  Future<bool> hasGroqKey() => _secureKeys.hasGroqKey();
 
-  Future<void> setGroqApiKey(String? key) async {
-    if (key == null || key.trim().isEmpty) {
-      await _prefs.remove(_keyGroqApiKey);
-    } else {
-      await _prefs.setString(_keyGroqApiKey, key.trim());
-    }
-  }
+  Future<void> setGroqApiKey(String? key) => _secureKeys.setGroqApiKey(key);
 
   // ── Saved stories ─────────────────────────────────────────────
 
