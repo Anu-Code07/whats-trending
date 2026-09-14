@@ -22,6 +22,7 @@ class StoryModel {
     this.communityReaction,
     this.quickExplanation,
     this.deepExplanation,
+    this.trendScore = 1,
   });
 
   final String id;
@@ -44,6 +45,7 @@ class StoryModel {
   final Map<String, dynamic>? communityReaction;
   final String? quickExplanation;
   final String? deepExplanation;
+  final int trendScore;
 
   factory StoryModel.fromJson(Map<String, dynamic> json) {
     return StoryModel(
@@ -119,6 +121,7 @@ class StoryModel {
           : null,
       quickExplanation: quickExplanation,
       deepExplanation: deepExplanation,
+      trendScore: trendScore,
     );
   }
 

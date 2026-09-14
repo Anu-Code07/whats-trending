@@ -58,6 +58,7 @@ class FeedRepositoryImpl implements FeedRepository {
           communityReaction: entity.communityReaction,
           quickExplanation: entity.quickExplanation,
           deepExplanation: entity.deepExplanation,
+          trendScore: entity.trendScore,
         );
       } else {
         entity = entity.copyWith(
@@ -70,6 +71,17 @@ class FeedRepositoryImpl implements FeedRepository {
 
     stories.sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
     return stories;
+  }
+
+  Future<List<Story>> _loadTrendingStories({bool forceRefresh = false}) async {
+    final stories = await _loadStories(forceRefresh: forceRefresh);
+    final sorted = List<Story>.from(stories);
+    sorted.sort((a, b) {
+      final trendCmp = b.trendScore.compareTo(a.trendScore);
+      if (trendCmp != 0) return trendCmp;
+      return b.publishedAt.compareTo(a.publishedAt);
+    });
+    return sorted;
   }
 
   String _explainRelevance(Story story, List<String> interests) {
@@ -136,9 +148,10 @@ class FeedRepositoryImpl implements FeedRepository {
 
     var entity = model.toEntity().copyWith(isSaved: user.isStorySaved(id));
 
-    // Enrich with Groq if key is configured
-    if (user.hasGroqKey) {
-      final groq = GroqService(apiKey: user.groqApiKey!);
+    // Enrich with Groq if key is configured (stored in secure storage)
+    final groqKey = await user.getGroqApiKey();
+    if (groqKey != null && groqKey.isNotEmpty) {
+      final groq = GroqService(apiKey: groqKey);
       final whyItMatters = await groq.enrichStory(
         title: entity.title,
         summary: entity.summary,
@@ -174,5 +187,35 @@ class FeedRepositoryImpl implements FeedRepository {
     final user = await _user;
     final stories = await _loadStories();
     return stories.where((s) => user.isStorySaved(s.id)).toList();
+  }
+
+  @override
+  Future<List<Story>> getTrendingFeed({bool forceRefresh = false}) =>
+      _loadTrendingStories(forceRefresh: forceRefresh);
+
+  @override
+  Future<List<Story>> getRelatedStories(String storyId, {int limit = 5}) async {
+    final stories = await _loadStories();
+    final current = stories.where((s) => s.id == storyId).firstOrNull;
+    if (current == null) return stories.take(limit).toList();
+
+    final related = stories
+        .where((s) => s.id != storyId)
+        .map((s) => (
+              story: s,
+              score: (s.category == current.category ? 3 : 0) +
+                  (s.trendScore >= current.trendScore ? 2 : 0) +
+                  (s.isHot ? 1 : 0),
+            ))
+        .where((e) => e.score > 0)
+        .toList();
+
+    related.sort((a, b) => b.score.compareTo(a.score));
+    return related.take(limit).map((e) => e.story).toList();
+  }
+
+  @override
+  List<String> getCategories(List<Story> stories) {
+    return stories.map((s) => s.category).toSet().toList()..sort();
   }
 }

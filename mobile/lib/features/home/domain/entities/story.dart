@@ -72,6 +72,7 @@ class Story extends Equatable {
     this.communityReaction,
     this.quickExplanation,
     this.deepExplanation,
+    this.trendScore = 1,
   });
 
   final String id;
@@ -95,8 +96,11 @@ class Story extends Equatable {
   final CommunityReaction? communityReaction;
   final String? quickExplanation;
   final String? deepExplanation;
+  final int trendScore;
 
   int get relevancePercent => (relevanceScore * 100).round();
+
+  bool get isHot => trendScore >= 2 || isBreaking;
 
   Story copyWith({
     bool? isSaved,
@@ -127,6 +131,7 @@ class Story extends Equatable {
       communityReaction: communityReaction,
       quickExplanation: quickExplanation,
       deepExplanation: deepExplanation,
+      trendScore: trendScore,
     );
   }
 

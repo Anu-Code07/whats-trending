@@ -8,4 +8,7 @@ abstract class FeedRepository {
   Future<void> saveStory(String storyId);
   Future<void> unsaveStory(String storyId);
   Future<List<Story>> getSavedStories();
+  Future<List<Story>> getTrendingFeed({bool forceRefresh = false});
+  Future<List<Story>> getRelatedStories(String storyId, {int limit = 5});
+  List<String> getCategories(List<Story> stories);
 }

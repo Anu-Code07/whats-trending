@@ -79,6 +79,7 @@ class NewsApiDatasource {
             }),
       ],
       isBreaking: trendScore >= 3,
+      trendScore: trendScore,
     );
   }
 

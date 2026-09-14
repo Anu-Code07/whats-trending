@@ -1,16 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../home/domain/entities/story.dart';
 import '../../../../shared/widgets/impact_pill.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
 import '../../../../shared/widgets/relevance_badge.dart';
+import '../../../../shared/widgets/trending_story_card.dart';
 import '../bloc/story_bloc.dart';
 
-class StoryPage extends StatelessWidget {
+class StoryPage extends StatefulWidget {
   const StoryPage({super.key, required this.storyId});
 
   final String storyId;
+
+  @override
+  State<StoryPage> createState() => _StoryPageState();
+}
+
+class _StoryPageState extends State<StoryPage> {
+  List<Story> _related = [];
+  bool _loadingRelated = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRelated();
+  }
+
+  Future<void> _loadRelated() async {
+    final related = await ServiceLocator.feedRepository.getRelatedStories(widget.storyId);
+    if (mounted) {
+      setState(() {
+        _related = related;
+        _loadingRelated = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +53,8 @@ class StoryPage extends StatelessWidget {
             StoryLoaded(story: final story, depth: final depth) => _StoryContent(
                 story: story,
                 depth: depth,
+                related: _related,
+                loadingRelated: _loadingRelated,
               ),
           },
         );
@@ -32,18 +64,35 @@ class StoryPage extends StatelessWidget {
 }
 
 class _StoryContent extends StatelessWidget {
-  const _StoryContent({required this.story, required this.depth});
+  const _StoryContent({
+    required this.story,
+    required this.depth,
+    required this.related,
+    required this.loadingRelated,
+  });
 
-  final dynamic story;
+  final Story story;
   final String depth;
+  final List<Story> related;
+  final bool loadingRelated;
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final gradient = _categoryGradient(story.category);
 
     return CustomScrollView(
       slivers: [
         SliverAppBar(
+          expandedHeight: 180,
           pinned: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -54,14 +103,66 @@ class _StoryContent extends StatelessWidget {
               onPressed: () => context.read<StoryBloc>().add(const ToggleSave()),
               icon: Icon(
                 story.isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                color: story.isSaved ? AppColors.accent : AppColors.textPrimary,
+                color: story.isSaved ? AppColors.accent : Colors.white,
               ),
             ),
             IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.share_outlined),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: story.primarySourceUrl));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Link copied')),
+                );
+              },
+              icon: const Icon(Icons.share_outlined, color: Colors.white),
             ),
           ],
+          flexibleSpace: FlexibleSpaceBar(
+            background: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: gradient,
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            if (story.isHot)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                margin: const EdgeInsets.only(right: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.trending_up, size: 12, color: Colors.white),
+                                    const SizedBox(width: 4),
+                                    Text('TRENDING', style: theme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+                                  ],
+                                ),
+                              ),
+                            Text(story.category, style: theme.labelSmall?.copyWith(color: Colors.white70)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
         SliverToBoxAdapter(
           child: Padding(
@@ -74,6 +175,20 @@ class _StoryContent extends StatelessWidget {
                     RelevanceBadge(percent: story.relevancePercent),
                     const SizedBox(width: 8),
                     ImpactPill(impact: story.impact),
+                    if (story.trendScore > 1) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.relevanceHigh.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${story.trendScore}x trend',
+                          style: theme.labelSmall?.copyWith(color: AppColors.relevanceHigh),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -81,21 +196,37 @@ class _StoryContent extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Text(
-                      story.primarySourceName,
-                      style: theme.bodySmall?.copyWith(color: AppColors.accent),
+                    GestureDetector(
+                      onTap: () => _openUrl(story.primarySourceUrl),
+                      child: Text(
+                        story.primarySourceName,
+                        style: theme.bodySmall?.copyWith(
+                          color: AppColors.accent,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.accent.withValues(alpha: 0.5),
+                        ),
+                      ),
                     ),
                     Text(' · ', style: TextStyle(color: AppColors.textTertiary)),
                     Text(
                       DateFormat('MMM d, h:mm a').format(story.publishedAt),
                       style: theme.bodySmall?.copyWith(color: AppColors.textTertiary),
                     ),
-                    Text(' · ', style: TextStyle(color: AppColors.textTertiary)),
-                    Text(
-                      '${story.sourceCount} sources',
-                      style: theme.bodySmall?.copyWith(color: AppColors.textTertiary),
-                    ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () => _openUrl(story.primarySourceUrl),
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: const Text('Read original article'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 _DepthSelector(
@@ -107,21 +238,16 @@ class _StoryContent extends StatelessWidget {
                 const SizedBox(height: 24),
                 _Section(
                   title: 'Why it matters',
-                  child: Text(story.whyItMatters, style: theme.bodyMedium),
-                ),
-                if (story.whoShouldCare.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  _Section(
-                    title: 'Who should care?',
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: story.whoShouldCare
-                          .map((c) => Chip(label: Text(c)))
-                          .toList(),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentMuted,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.accent.withValues(alpha: 0.2)),
                     ),
+                    child: Text(story.whyItMatters, style: theme.bodyMedium),
                   ),
-                ],
+                ),
                 const SizedBox(height: 24),
                 _Section(
                   title: 'Your relevance',
@@ -146,103 +272,54 @@ class _StoryContent extends StatelessWidget {
                     title: 'Sources',
                     child: Column(
                       children: story.sources.map((s) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              _SourceTypeBadge(type: s.contentType),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(s.name, style: theme.bodySmall)),
-                            ],
+                        return GestureDetector(
+                          onTap: s.url.isNotEmpty ? () => _openUrl(s.url) : null,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                _SourceTypeBadge(type: s.contentType),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(s.name, style: theme.bodySmall)),
+                                if (s.url.isNotEmpty)
+                                  const Icon(Icons.open_in_new, size: 14, color: AppColors.textTertiary),
+                              ],
+                            ),
                           ),
                         );
                       }).toList(),
-                    ),
-                  ),
-                ],
-                if (story.timeline.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  _Section(
-                    title: 'Timeline',
-                    child: Column(
-                      children: story.timeline.map((t) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                margin: const EdgeInsets.only(top: 6),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.accent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(t.title, style: theme.bodySmall),
-                                    Text(
-                                      DateFormat('MMM d, h:mm a').format(t.occurredAt),
-                                      style: theme.labelSmall?.copyWith(color: AppColors.textTertiary),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-                if (story.communityReaction != null) ...[
-                  const SizedBox(height: 24),
-                  _Section(
-                    title: 'Community reaction',
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceElevated,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Opinion · ${story.communityReaction!.source}',
-                            style: theme.labelSmall?.copyWith(color: AppColors.textTertiary),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(story.communityReaction!.summary, style: theme.bodySmall),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 6,
-                            children: story.communityReaction!.themes
-                                .map((t) => Chip(label: Text(t), visualDensity: VisualDensity.compact))
-                                .toList(),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ],
                 const SizedBox(height: 32),
-                OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.lightbulb_outline),
-                  label: const Text('Build something with this'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                    side: const BorderSide(color: AppColors.accent),
-                    foregroundColor: AppColors.accent,
-                  ),
+                Text('Keep exploring', style: theme.headlineMedium),
+                const SizedBox(height: 4),
+                Text(
+                  'Related stories in ${story.category}',
+                  style: theme.bodySmall?.copyWith(color: AppColors.textSecondary),
                 ),
+                const SizedBox(height: 16),
+                if (loadingRelated)
+                  const Center(child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(color: AppColors.accent),
+                  ))
+                else if (related.isEmpty)
+                  Text('No related stories', style: theme.bodySmall?.copyWith(color: AppColors.textTertiary))
+                else
+                  ...related.asMap().entries.map((e) {
+                    return TrendingStoryCard(
+                      story: e.value,
+                      rank: e.key + 1,
+                      onTap: () => context.pushReplacement('/story/${e.value.id}'),
+                    );
+                  }),
                 const SizedBox(height: 40),
               ],
             ),
@@ -251,11 +328,21 @@ class _StoryContent extends StatelessWidget {
       ],
     );
   }
+
+  List<Color> _categoryGradient(String category) {
+    return switch (category.toLowerCase()) {
+      'models' => [const Color(0xFF6366F1), const Color(0xFF4338CA)],
+      'tools' => [const Color(0xFF0EA5E9), const Color(0xFF0369A1)],
+      'startups' => [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+      'regulation' => [const Color(0xFFEF4444), const Color(0xFFB91C1C)],
+      'research' => [const Color(0xFF8B5CF6), const Color(0xFF6D28D9)],
+      _ => [const Color(0xFF1C1C2E), const Color(0xFF0A0A0B)],
+    };
+  }
 }
 
 class _Section extends StatelessWidget {
   const _Section({required this.title, required this.child});
-
   final String title;
   final Widget child;
 
@@ -274,18 +361,12 @@ class _Section extends StatelessWidget {
 
 class _DepthSelector extends StatelessWidget {
   const _DepthSelector({required this.currentDepth, required this.onChanged});
-
   final String currentDepth;
   final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    const depths = [
-      ('quick', '30 sec'),
-      ('normal', '3 min'),
-      ('deep', '10 min'),
-    ];
-
+    const depths = [('quick', '30 sec'), ('normal', '3 min'), ('deep', '10 min')];
     return Row(
       children: depths.map((d) {
         final isSelected = currentDepth == d.$1;
@@ -299,9 +380,7 @@ class _DepthSelector extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.accentMuted : AppColors.surfaceElevated,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected ? AppColors.accent : AppColors.border,
-                  ),
+                  border: Border.all(color: isSelected ? AppColors.accent : AppColors.border),
                 ),
                 child: Text(
                   d.$2,
@@ -322,7 +401,6 @@ class _DepthSelector extends StatelessWidget {
 
 class _SourceTypeBadge extends StatelessWidget {
   const _SourceTypeBadge({required this.type});
-
   final String type;
 
   @override
@@ -332,17 +410,13 @@ class _SourceTypeBadge extends StatelessWidget {
       'community' => AppColors.relevanceMid,
       _ => AppColors.textSecondary,
     };
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        type,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
-      ),
+      child: Text(type, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color)),
     );
   }
 }
