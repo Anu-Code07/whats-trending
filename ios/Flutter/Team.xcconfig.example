@@ -1,0 +1,5 @@
+// Copy this file to Team.xcconfig and set your Apple Developer Team ID.
+// Find it at https://developer.apple.com/account → Membership → Team ID
+// Or in Xcode: Runner target → Signing & Capabilities → Team (hover for ID).
+//
+// DEVELOPMENT_TEAM = YOUR_TEAM_ID_HERE
