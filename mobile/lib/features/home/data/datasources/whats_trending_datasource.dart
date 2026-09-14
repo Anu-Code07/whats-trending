@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import '../../../../core/constants/app_constants.dart';
 import '../models/story_model.dart';
 
-/// Fetches live tech/AI news from WhatsTrending (free, no API key).
-class NewsApiDatasource {
+/// Fetches live tech/AI news directly from WhatsTrending API (no backend).
+class WhatsTrendingDatasource {
   List<StoryModel>? _cache;
   DateTime? _cacheTime;
   static const _cacheDuration = Duration(minutes: 15);
@@ -19,7 +19,7 @@ class NewsApiDatasource {
 
     try {
       final response = await http.get(
-        Uri.parse(AppConstants.newsApiUrl),
+        Uri.parse(AppConstants.whatsTrendingApiUrl),
         headers: {'Accept': 'application/json'},
       ).timeout(const Duration(seconds: 12));
 
@@ -28,9 +28,11 @@ class NewsApiDatasource {
       }
 
       final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final data = json['data'] as List? ?? [];
+      if (json['success'] != true) return _cache ?? [];
 
+      final data = json['data'] as List? ?? [];
       final stories = data.map((item) => _mapArticle(item as Map<String, dynamic>)).toList();
+
       _cache = stories;
       _cacheTime = DateTime.now();
       return stories;
@@ -39,8 +41,8 @@ class NewsApiDatasource {
     }
   }
 
-  StoryModel? getBySlug(String slug) {
-    return _cache?.where((s) => s.slug == slug || s.id == slug).firstOrNull;
+  StoryModel? getById(String id) {
+    return _cache?.where((s) => s.id == id || s.slug == id).firstOrNull;
   }
 
   StoryModel _mapArticle(Map<String, dynamic> item) {
@@ -53,7 +55,7 @@ class NewsApiDatasource {
     return StoryModel(
       id: slug.isNotEmpty ? slug : item['link'] as String,
       slug: slug,
-      title: item['title'] as String? ?? '',
+      title: item['title'] as String? ?? item['originalTitle'] as String? ?? '',
       summary: item['summary'] as String? ?? '',
       whyItMatters: _defaultWhyItMatters(category),
       category: category,

@@ -2,16 +2,16 @@ import '../../../../core/services/groq_service.dart';
 import '../../../../core/storage/user_local_storage.dart';
 import '../../domain/entities/story.dart';
 import '../../domain/repositories/feed_repository.dart';
-import '../datasources/news_api_datasource.dart';
+import '../datasources/whats_trending_datasource.dart';
 
 class FeedRepositoryImpl implements FeedRepository {
   FeedRepositoryImpl({
-    NewsApiDatasource? newsDatasource,
+    WhatsTrendingDatasource? datasource,
     UserLocalStorage? storage,
-  })  : _news = newsDatasource ?? NewsApiDatasource(),
+  })  : _api = datasource ?? WhatsTrendingDatasource(),
         _storage = storage;
 
-  final NewsApiDatasource _news;
+  final WhatsTrendingDatasource _api;
   UserLocalStorage? _storage;
 
   Future<UserLocalStorage> get _user async =>
@@ -19,7 +19,7 @@ class FeedRepositoryImpl implements FeedRepository {
 
   Future<List<Story>> _loadStories({bool forceRefresh = false}) async {
     final user = await _user;
-    final models = await _news.fetchArticles(forceRefresh: forceRefresh);
+    final models = await _api.fetchArticles(forceRefresh: forceRefresh);
     final interests = user.interests.map((i) => i.toLowerCase()).toList();
     final savedIds = user.savedStoryIds;
 
@@ -142,7 +142,7 @@ class FeedRepositoryImpl implements FeedRepository {
     final user = await _user;
     await user.markStoryRead(id);
 
-    final models = await _news.fetchArticles();
+    final models = await _api.fetchArticles();
     final model = models.where((m) => m.id == id || m.slug == id).firstOrNull;
     if (model == null) throw Exception('Story not found');
 

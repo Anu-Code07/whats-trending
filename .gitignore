@@ -26,8 +26,5 @@ mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
 mobile/.packages
 
-# Prisma
-backend/prisma/*.db
-
 # Logs
 *.log
