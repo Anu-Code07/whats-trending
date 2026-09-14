@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/brief/presentation/pages/brief_page.dart';
 import '../../features/discover/presentation/pages/discover_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
@@ -22,9 +21,8 @@ class AppRouter {
     return GoRouter(
       navigatorKey: _rootNavigatorKey,
       initialLocation: '/',
-      redirect: (context, state) async {
-        final prefs = await SharedPreferences.getInstance();
-        final complete = prefs.getBool('onboarding_complete') ?? false;
+      redirect: (context, state) {
+        final complete = ServiceLocator.storage.isOnboardingComplete;
         final isOnboarding = state.matchedLocation == '/onboarding';
 
         if (!complete && !isOnboarding) return '/onboarding';
@@ -63,22 +61,10 @@ class AppRouter {
                 child: const HomePage(),
               ),
             ),
-            GoRoute(
-              path: '/discover',
-              builder: (_, __) => const DiscoverPage(),
-            ),
-            GoRoute(
-              path: '/brief',
-              builder: (_, __) => const BriefPage(),
-            ),
-            GoRoute(
-              path: '/saved',
-              builder: (_, __) => const SavedPage(),
-            ),
-            GoRoute(
-              path: '/profile',
-              builder: (_, __) => const ProfilePage(),
-            ),
+            GoRoute(path: '/discover', builder: (_, __) => const DiscoverPage()),
+            GoRoute(path: '/brief', builder: (_, __) => const BriefPage()),
+            GoRoute(path: '/saved', builder: (_, __) => const SavedPage()),
+            GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
           ],
         ),
       ],
@@ -88,12 +74,10 @@ class AppRouter {
 
 class _AppShell extends StatelessWidget {
   const _AppShell({required this.child});
-
   final Widget child;
 
   int _currentIndex(BuildContext context) {
-    final location = GoRouterState.of(context).matchedLocation;
-    return switch (location) {
+    return switch (GoRouterState.of(context).matchedLocation) {
       '/' => 0,
       '/discover' => 1,
       '/brief' => 2,
@@ -114,17 +98,7 @@ class _AppShell extends StatelessWidget {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex(context),
-          onTap: (index) {
-            final path = switch (index) {
-              0 => '/',
-              1 => '/discover',
-              2 => '/brief',
-              3 => '/saved',
-              4 => '/profile',
-              _ => '/',
-            };
-            context.go(path);
-          },
+          onTap: (i) => context.go(['/', '/discover', '/brief', '/saved', '/profile'][i]),
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
             BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore), label: 'Discover'),

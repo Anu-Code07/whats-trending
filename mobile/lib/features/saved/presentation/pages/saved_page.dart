@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../home/data/repositories/feed_repository_impl.dart';
 import '../../../home/domain/entities/story.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/story_card.dart';
@@ -24,8 +24,7 @@ class _SavedPageState extends State<SavedPage> {
   }
 
   Future<void> _load() async {
-    final repo = FeedRepositoryImpl();
-    final saved = await repo.getSavedStories();
+    final saved = await ServiceLocator.feedRepository.getSavedStories();
     setState(() {
       _saved = saved;
       _loading = false;
@@ -40,7 +39,7 @@ class _SavedPageState extends State<SavedPage> {
           : _saved.isEmpty
               ? const EmptyState(
                   title: 'Nothing saved yet',
-                  subtitle: 'Save stories to read later, learn, or build ideas from.',
+                  subtitle: 'Save stories to read later or build ideas from.',
                 )
               : CustomScrollView(
                   slivers: [
@@ -53,7 +52,7 @@ class _SavedPageState extends State<SavedPage> {
                             Text('Saved', style: Theme.of(context).textTheme.displayLarge),
                             const SizedBox(height: 4),
                             Text(
-                              '${_saved.length} stories',
+                              '${_saved.length} stories · stored offline',
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: AppColors.textSecondary,
                                   ),

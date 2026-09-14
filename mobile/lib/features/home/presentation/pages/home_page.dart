@@ -53,7 +53,7 @@ class HomePage extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Know what matters in tech.',
+                                        'Your north star in tech.',
                                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                               color: AppColors.textSecondary,
                                             ),

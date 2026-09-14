@@ -98,17 +98,23 @@ class Story extends Equatable {
 
   int get relevancePercent => (relevanceScore * 100).round();
 
-  Story copyWith({bool? isSaved, String? summary}) {
+  Story copyWith({
+    bool? isSaved,
+    String? summary,
+    String? whyItMatters,
+    String? relevanceExplanation,
+    double? relevanceScore,
+  }) {
     return Story(
       id: id,
       slug: slug,
       title: title,
       summary: summary ?? this.summary,
-      whyItMatters: whyItMatters,
+      whyItMatters: whyItMatters ?? this.whyItMatters,
       category: category,
       sourceCount: sourceCount,
-      relevanceScore: relevanceScore,
-      relevanceExplanation: relevanceExplanation,
+      relevanceScore: relevanceScore ?? this.relevanceScore,
+      relevanceExplanation: relevanceExplanation ?? this.relevanceExplanation,
       impact: impact,
       publishedAt: publishedAt,
       primarySourceName: primarySourceName,

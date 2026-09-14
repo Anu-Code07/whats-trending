@@ -1,7 +1,7 @@
 import '../entities/story.dart';
 
 abstract class FeedRepository {
-  Future<FeedData> getFeed();
+  Future<FeedData> getFeed({bool forceRefresh = false});
   Future<List<Story>> getSinceLastChecked();
   Future<({List<Story> topStories, List<Story> missedStories})> getDailyBrief();
   Future<Story> getStoryById(String id, {String depth = 'normal'});

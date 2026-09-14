@@ -38,7 +38,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(HomeLoaded(feed: current.feed, isRefreshing: true));
     }
     try {
-      final feed = await _getFeed();
+      final feed = await _getFeed(forceRefresh: true);
       emit(HomeLoaded(feed: feed));
     } catch (e) {
       if (current is HomeLoaded) {

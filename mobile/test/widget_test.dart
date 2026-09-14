@@ -1,10 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pulse/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:northstar/main.dart';
+import 'package:northstar/core/di/service_locator.dart';
 
 void main() {
-  testWidgets('Pulse app builds', (WidgetTester tester) async {
-    await tester.pumpWidget(const PulseApp());
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    await ServiceLocator.init();
+  });
+
+  testWidgets('Northstar app builds', (WidgetTester tester) async {
+    await tester.pumpWidget(const NorthstarApp());
     await tester.pump();
-    expect(find.byType(PulseApp), findsOneWidget);
+    expect(find.byType(NorthstarApp), findsOneWidget);
   });
 }

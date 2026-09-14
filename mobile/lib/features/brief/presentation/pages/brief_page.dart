@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../home/data/repositories/feed_repository_impl.dart';
 import '../../../home/domain/entities/story.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
 import '../../../../shared/widgets/story_card.dart';
@@ -26,8 +26,7 @@ class _BriefPageState extends State<BriefPage> {
   }
 
   Future<void> _loadBrief() async {
-    final repo = FeedRepositoryImpl();
-    final brief = await repo.getDailyBrief();
+    final brief = await ServiceLocator.feedRepository.getDailyBrief();
     setState(() {
       _topStories = brief.topStories;
       _missedStories = brief.missedStories;
@@ -39,6 +38,8 @@ class _BriefPageState extends State<BriefPage> {
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: LoadingSkeleton());
 
+    final firstName = ServiceLocator.storage.firstName;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -48,7 +49,10 @@ class _BriefPageState extends State<BriefPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Your Tech Brief', style: Theme.of(context).textTheme.displayLarge),
+                  Text(
+                    '$firstName\'s Tech Brief',
+                    style: Theme.of(context).textTheme.displayLarge,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     DateFormat('EEEE, MMMM d').format(DateTime.now()),

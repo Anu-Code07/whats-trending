@@ -1,8 +1,8 @@
-# Pulse
+# Northstar
 
-> **Know what matters in tech.**
+> **Your north star in tech.**
 
-A premium mobile intelligence product that aggregates technology news into canonical stories, explains why they matter, and personalizes delivery based on an evolving interest graph.
+A premium Flutter mobile intelligence app that aggregates technology news into canonical stories, explains why they matter, and personalizes delivery — no login required.
 
 ## Architecture
 
@@ -37,7 +37,7 @@ npm run dev
 
 API runs at `http://localhost:3000`. Health check: `GET /health`.
 
-### Mobile
+### Mobile (Northstar)
 
 ```bash
 cd mobile
@@ -45,7 +45,11 @@ flutter pub get
 flutter run
 ```
 
-The mobile app uses mock data by default. Connect to the backend by updating `AppConstants.apiBaseUrl`.
+**Features:**
+- Offline-first — name + interests stored locally (no login)
+- Live tech news from [WhatsTrending API](https://whatstrending.ai) (free, no key)
+- Groq LLM enrichment — add your API key in Profile for AI "Why it matters" explanations
+- Animated 4-step onboarding
 
 ## MVP Features
 

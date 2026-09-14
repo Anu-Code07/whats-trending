@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../home/data/repositories/feed_repository_impl.dart';
 import '../../../home/domain/entities/story.dart';
 import '../../../../shared/widgets/story_card.dart';
 
@@ -19,15 +19,11 @@ class _SearchPageState extends State<SearchPage> {
 
   Future<void> _search(String query) async {
     if (query.isEmpty) {
-      setState(() {
-        _results = [];
-        _searched = false;
-      });
+      setState(() { _results = []; _searched = false; });
       return;
     }
 
-    final repo = FeedRepositoryImpl();
-    final feed = await repo.getFeed();
+    final feed = await ServiceLocator.feedRepository.getFeed();
     final q = query.toLowerCase();
     final filtered = feed.stories.where((s) {
       return s.title.toLowerCase().contains(q) ||
@@ -35,10 +31,7 @@ class _SearchPageState extends State<SearchPage> {
           s.category.toLowerCase().contains(q);
     }).toList();
 
-    setState(() {
-      _results = filtered;
-      _searched = true;
-    });
+    setState(() { _results = filtered; _searched = true; });
   }
 
   @override
@@ -66,10 +59,7 @@ class _SearchPageState extends State<SearchPage> {
           },
         ),
         actions: [
-          IconButton(
-            onPressed: () => _search(_controller.text),
-            icon: const Icon(Icons.search),
-          ),
+          IconButton(onPressed: () => _search(_controller.text), icon: const Icon(Icons.search)),
         ],
       ),
       body: _searched
@@ -103,15 +93,12 @@ class _SearchPageState extends State<SearchPage> {
                   ...[
                     'What are the biggest AI agent developments?',
                     'What changed in React this month?',
-                    'Show me everything about Flutter',
+                    'Show me everything about OpenAI',
                   ].map((q) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: GestureDetector(
-                        onTap: () {
-                          _controller.text = q;
-                          _search(q);
-                        },
+                        onTap: () { _controller.text = q; _search(q); },
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(14),

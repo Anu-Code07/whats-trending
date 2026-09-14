@@ -6,5 +6,6 @@ class GetFeed {
 
   final FeedRepository _repository;
 
-  Future<FeedData> call() => _repository.getFeed();
+  Future<FeedData> call({bool forceRefresh = false}) =>
+      _repository.getFeed(forceRefresh: forceRefresh);
 }
