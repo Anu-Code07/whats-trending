@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 .pub-cache/
-.dart_tool/
+.pub/
 
 # Build
 dist/
@@ -16,15 +16,41 @@ build/
 .idea/
 .vscode/
 *.iml
+*.ipr
+*.iws
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Flutter
-mobile/.flutter-plugins
-mobile/.flutter-plugins-dependencies
-mobile/.packages
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+# Symbolication / obfuscation
+app.*.symbols
+app.*.map.json
+
+# Android build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release
 
 # Logs
 *.log
+
+# Misc
+*.class
+*.pyc
+*.swp
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
