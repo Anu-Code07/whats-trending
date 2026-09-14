@@ -5,7 +5,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/domain/entities/story.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
-import '../../../../shared/widgets/story_card.dart';
+import '../../../../shared/widgets/news_card.dart';
 
 class BriefPage extends StatefulWidget {
   const BriefPage({super.key});
@@ -41,6 +41,13 @@ class _BriefPageState extends State<BriefPage> {
     final firstName = ServiceLocator.storage.firstName;
 
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+        title: const Text('Daily Brief'),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -73,26 +80,11 @@ class _BriefPageState extends State<BriefPage> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final story = _topStories[index];
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20, right: 12),
-                        child: Text(
-                          '${index + 1}',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: AppColors.accent,
-                              ),
-                        ),
-                      ),
-                      Expanded(
-                        child: StoryCard(
-                          story: story,
-                          compact: true,
-                          onTap: () => context.push('/story/${story.id}'),
-                        ),
-                      ),
-                    ],
+                  return NewsCard(
+                    story: story,
+                    colorIndex: index,
+                    compact: true,
+                    onTap: () => context.push('/story/${story.id}'),
                   );
                 },
                 childCount: _topStories.length,
@@ -115,8 +107,9 @@ class _BriefPageState extends State<BriefPage> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final story = _missedStories[index];
-                    return StoryCard(
+                    return NewsCard(
                       story: story,
+                      colorIndex: index + 5,
                       compact: true,
                       onTap: () => context.push('/story/${story.id}'),
                     );

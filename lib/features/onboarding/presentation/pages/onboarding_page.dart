@@ -211,7 +211,7 @@ class _WelcomeStep extends StatelessWidget {
           Text(
             AppConstants.tagline,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.accent,
+                  color: AppColors.highlight,
                   fontWeight: FontWeight.w500,
                 ),
           ),
@@ -434,7 +434,7 @@ class _InterestsStep extends StatelessWidget {
             child: Text(
               '${selected.length} selected',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.accent,
+                    color: AppColors.highlight,
                   ),
             ),
           ),
@@ -475,7 +475,7 @@ class _ReadyStep extends StatelessWidget {
               child: Text(
                 name.isNotEmpty ? name[0].toUpperCase() : '?',
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      color: AppColors.accent,
+                      color: AppColors.highlight,
                       fontSize: 36,
                     ),
               ),
@@ -532,7 +532,7 @@ class _ReadyStep extends StatelessWidget {
                       child: Text(
                         i,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppColors.accent,
+                              color: AppColors.highlight,
                             ),
                       ),
                     );

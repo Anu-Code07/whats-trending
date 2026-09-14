@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
 class LoadingSkeleton extends StatefulWidget {
-  const LoadingSkeleton({super.key, this.count = 4});
+  const LoadingSkeleton({super.key, this.count = 3});
 
   final int count;
 
@@ -43,10 +43,10 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
                 return LinearGradient(
                   begin: Alignment(-1 + _controller.value * 2, 0),
                   end: Alignment(1 + _controller.value * 2, 0),
-                  colors: const [
-                    AppColors.surface,
-                    AppColors.surfaceElevated,
-                    AppColors.surface,
+                  colors: [
+                    AppColors.cardColorForIndex(index),
+                    AppColors.cardColorForIndex(index).withValues(alpha: 0.6),
+                    AppColors.cardColorForIndex(index),
                   ],
                 ).createShader(bounds);
               },
@@ -54,11 +54,11 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
             );
           },
           child: Container(
-            height: 140,
-            margin: const EdgeInsets.only(bottom: 12),
+            height: 280,
+            margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              color: AppColors.cardCream,
+              borderRadius: BorderRadius.circular(28),
             ),
           ),
         );

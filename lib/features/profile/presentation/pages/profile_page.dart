@@ -81,6 +81,13 @@ class _ProfilePageState extends State<ProfilePage> {
     final interests = storage.interests;
 
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('Profile'),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -96,19 +103,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         height: 56,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.accent.withValues(alpha: 0.4),
-                              AppColors.accent.withValues(alpha: 0.1),
-                            ],
-                          ),
-                          border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                          color: AppColors.surface,
+                          border: Border.all(color: AppColors.border),
                         ),
                         child: Center(
                           child: Text(
                             name.isNotEmpty ? name[0].toUpperCase() : '?',
                             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  color: AppColors.accent,
+                                  color: AppColors.highlight,
                                 ),
                           ),
                         ),

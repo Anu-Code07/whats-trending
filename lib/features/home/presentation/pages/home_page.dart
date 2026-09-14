@@ -2,13 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/category_tabs.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
-import '../../../../shared/widgets/story_card.dart';
+import '../../../../shared/widgets/news_page_header.dart';
+import '../../../../shared/widgets/stacked_news_feed.dart';
+import '../../../home/domain/entities/story.dart';
 import '../bloc/home_bloc.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String _selectedCategory = 'Trending';
+  List<String> _categories = ['Trending'];
+
+  List<Story> _filterStories(List<Story> stories) {
+    if (_selectedCategory == 'Trending') return stories;
+    return stories.where((s) => s.category == _selectedCategory).toList();
+  }
+
+  void _updateCategories(List<Story> stories) {
+    final cats = stories.map((s) => s.category).toSet().toList()..sort();
+    _categories = ['Trending', ...cats];
+    if (!_categories.contains(_selectedCategory)) {
+      _selectedCategory = 'Trending';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,167 +50,122 @@ class HomePage extends StatelessWidget {
                 onAction: () => context.read<HomeBloc>().add(const LoadHomeFeed()),
               ),
             ),
-          HomeLoaded(feed: final feed) => Scaffold(
-              body: RefreshIndicator(
-                onRefresh: () async {
-                  context.read<HomeBloc>().add(const RefreshHomeFeed());
-                  await Future.delayed(const Duration(milliseconds: 800));
-                },
-                color: AppColors.accent,
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        feed.greeting,
-                                        style: Theme.of(context).textTheme.displayLarge,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Your north star in tech.',
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                              color: AppColors.textSecondary,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () => context.push('/search'),
-                                  icon: const Icon(Icons.search, color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                            if (feed.sinceLastChecked.isNotEmpty) ...[
-                              const SizedBox(height: 28),
-                              _SinceLastCheckedSection(
-                                stories: feed.sinceLastChecked,
-                                onStoryTap: (id) => context.push('/story/$id'),
-                              ),
-                            ],
-                            const SizedBox(height: 24),
-                            Text(
-                              'For you',
-                              style: Theme.of(context).textTheme.headlineMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${feed.stories.length} important things happening',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final story = feed.stories[index];
-                            return StoryCard(
-                              story: story,
-                              onTap: () => context.push('/story/${story.id}'),
-                              onSave: () => context.read<HomeBloc>().add(
-                                    ToggleStorySave(
-                                      storyId: story.id,
-                                      isSaved: story.isSaved,
-                                    ),
-                                  ),
-                            );
-                          },
-                          childCount: feed.stories.length,
-                        ),
-                      ),
-                    ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                  ],
-                ),
-              ),
-            ),
+          HomeLoaded(feed: final feed) => _buildFeed(context, feed),
         };
       },
     );
   }
-}
 
-class _SinceLastCheckedSection extends StatelessWidget {
-  const _SinceLastCheckedSection({
-    required this.stories,
-    required this.onStoryTap,
-  });
+  Widget _buildFeed(BuildContext context, FeedData feed) {
+    _updateCategories(feed.stories);
+    final stories = _filterStories(feed.stories);
 
-  final List stories;
-  final void Function(String id) onStoryTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Since you last checked',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${stories.length} important things happened',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-          ),
-          const SizedBox(height: 12),
-          ...stories.take(3).map((story) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: GestureDetector(
-                onTap: () => onStoryTap(story.id),
-                child: Row(
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<HomeBloc>().add(const RefreshHomeFeed());
+          await Future.delayed(const Duration(milliseconds: 800));
+        },
+        color: AppColors.textPrimary,
+        backgroundColor: AppColors.surface,
+        child: CustomScrollView(
+          clipBehavior: Clip.none,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${story.relevancePercent}%',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppColors.relevanceHigh,
-                            fontWeight: FontWeight.w700,
-                          ),
+                    NewsPageHeader(onMenuTap: () => _showMenu(context)),
+                    const SizedBox(height: 28),
+                    CategoryTabs(
+                      categories: _categories,
+                      selected: _selectedCategory,
+                      onSelected: (cat) => setState(() => _selectedCategory = cat),
+                      style: CategoryTabStyle.underline,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        story.title,
-                        style: Theme.of(context).textTheme.bodySmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right, size: 16, color: AppColors.textTertiary),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-            );
-          }),
-        ],
+            ),
+            StackedNewsFeed(
+              stories: stories,
+              onTap: (story) => context.push('/story/${story.id}'),
+              onSave: (story) => context.read<HomeBloc>().add(
+                    ToggleStorySave(
+                      storyId: story.id,
+                      isSaved: story.isSaved,
+                    ),
+                  ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  void _showMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _MenuTile(
+              icon: Icons.explore_outlined,
+              label: 'Discover',
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/discover');
+              },
+            ),
+            _MenuTile(
+              icon: Icons.wb_sunny_outlined,
+              label: 'Daily Brief',
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/brief');
+              },
+            ),
+            _MenuTile(
+              icon: Icons.person_outline,
+              label: 'Profile',
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/profile');
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuTile extends StatelessWidget {
+  const _MenuTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.textPrimary),
+      title: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+      onTap: onTap,
     );
   }
 }
