@@ -1,28 +1,25 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'secure_key_store.dart';
 
-/// Offline-first user profile — no login required.
+/// Offline-first user profile — everything stored locally on device.
 class UserLocalStorage {
-  UserLocalStorage(this._prefs, this._secureKeys);
+  UserLocalStorage(this._prefs);
 
   final SharedPreferences _prefs;
-  final SecureKeyStore _secureKeys;
 
   static const _keyOnboardingComplete = 'onboarding_complete';
   static const _keyName = 'user_name';
   static const _keyInterests = 'user_interests';
   static const _keySavedStories = 'saved_story_ids';
   static const _keyLastActiveAt = 'last_active_at';
+  static const _keyGroqApiKey = 'groq_api_key';
   static const _keyContentDepth = 'content_depth';
   static const _keyReadStoryIds = 'read_story_ids';
 
   static Future<UserLocalStorage> create() async {
     final prefs = await SharedPreferences.getInstance();
-    return UserLocalStorage(prefs, SecureKeyStore());
+    return UserLocalStorage(prefs);
   }
-
-  SecureKeyStore get secureKeys => _secureKeys;
 
   // ── Onboarding ──────────────────────────────────────────────
 
@@ -59,13 +56,19 @@ class UserLocalStorage {
 
   Future<void> setContentDepth(String depth) => _prefs.setString(_keyContentDepth, depth);
 
-  // ── Groq API key (secure storage) ───────────────────────────
+  // ── Groq API key (stored locally on device) ─────────────────
 
-  Future<String?> getGroqApiKey() => _secureKeys.getGroqApiKey();
+  String? get groqApiKey => _prefs.getString(_keyGroqApiKey);
 
-  Future<bool> hasGroqKey() => _secureKeys.hasGroqKey();
+  bool get hasGroqKey => groqApiKey != null && groqApiKey!.isNotEmpty;
 
-  Future<void> setGroqApiKey(String? key) => _secureKeys.setGroqApiKey(key);
+  Future<void> setGroqApiKey(String? key) async {
+    if (key == null || key.trim().isEmpty) {
+      await _prefs.remove(_keyGroqApiKey);
+    } else {
+      await _prefs.setString(_keyGroqApiKey, key.trim());
+    }
+  }
 
   // ── Saved stories ─────────────────────────────────────────────
 

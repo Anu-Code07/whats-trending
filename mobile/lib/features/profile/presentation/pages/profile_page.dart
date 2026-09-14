@@ -14,32 +14,13 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _groqKeyController;
   bool _showKey = false;
   bool _keySaved = false;
-  bool _hasGroqKey = false;
-  bool _loadingKey = true;
 
   @override
   void initState() {
     super.initState();
-    _groqKeyController = TextEditingController();
-    _loadGroqKeyStatus();
-  }
-
-  Future<void> _loadGroqKeyStatus() async {
-    final storage = ServiceLocator.storage;
-    final hasKey = await storage.hasGroqKey();
-    if (hasKey) {
-      final key = await storage.getGroqApiKey();
-      _groqKeyController.text = _maskKey(key ?? '');
-    }
-    setState(() {
-      _hasGroqKey = hasKey;
-      _loadingKey = false;
-    });
-  }
-
-  String _maskKey(String key) {
-    if (key.length <= 8) return '••••••••';
-    return '${key.substring(0, 4)}${'•' * (key.length - 8)}${key.substring(key.length - 4)}';
+    _groqKeyController = TextEditingController(
+      text: ServiceLocator.storage.groqApiKey ?? '',
+    );
   }
 
   @override
@@ -49,20 +30,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _saveGroqKey() async {
-    final raw = _groqKeyController.text.trim();
-    // If masked, user needs to enter full key
-    if (raw.contains('•')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your full Groq API key')),
-      );
-      return;
-    }
-    await ServiceLocator.storage.setGroqApiKey(raw);
-    setState(() {
-      _keySaved = true;
-      _hasGroqKey = raw.isNotEmpty;
-      if (_hasGroqKey) _groqKeyController.text = _maskKey(raw);
-    });
+    await ServiceLocator.storage.setGroqApiKey(_groqKeyController.text);
+    setState(() => _keySaved = true);
     HapticFeedback.lightImpact();
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _keySaved = false);
@@ -72,7 +41,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _clearGroqKey() async {
     await ServiceLocator.storage.setGroqApiKey(null);
     _groqKeyController.clear();
-    setState(() => _hasGroqKey = false);
+    setState(() {});
   }
 
   @override
@@ -80,6 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final storage = ServiceLocator.storage;
     final name = storage.userName;
     final interests = storage.interests;
+    final hasKey = storage.hasGroqKey;
 
     return Scaffold(
       body: CustomScrollView(
@@ -140,96 +110,65 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: interests.map((t) => Chip(label: Text(t))).toList(),
                   ),
                   const SizedBox(height: 28),
-                  Row(
-                    children: [
-                      Icon(Icons.lock_outline, size: 18, color: AppColors.accent),
-                      const SizedBox(width: 8),
-                      Text('AI Intelligence', style: Theme.of(context).textTheme.titleMedium),
-                    ],
-                  ),
+                  Text('AI Intelligence', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 4),
                   Text(
-                    'Groq API key is stored securely in your device Keychain / Keystore.',
+                    'Groq API key is saved locally on your device. Never sent anywhere except Groq.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),
                   ),
                   const SizedBox(height: 12),
-                  if (_loadingKey)
-                    const Center(child: CircularProgressIndicator(color: AppColors.accent))
-                  else ...[
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: TextField(
-                        controller: _groqKeyController,
-                        obscureText: !_showKey,
-                        onTap: () {
-                          if (_groqKeyController.text.contains('•')) {
-                            _groqKeyController.clear();
-                          }
-                        },
-                        style: Theme.of(context).textTheme.bodySmall,
-                        decoration: InputDecoration(
-                          hintText: 'gsk_...',
-                          hintStyle: TextStyle(color: AppColors.textTertiary),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _showKey ? Icons.visibility_off : Icons.visibility,
-                              size: 18,
-                              color: AppColors.textTertiary,
-                            ),
-                            onPressed: () => setState(() => _showKey = !_showKey),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: TextField(
+                      controller: _groqKeyController,
+                      obscureText: !_showKey,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      decoration: InputDecoration(
+                        hintText: 'gsk_...',
+                        hintStyle: TextStyle(color: AppColors.textTertiary),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _showKey ? Icons.visibility_off : Icons.visibility,
+                            size: 18,
+                            color: AppColors.textTertiary,
                           ),
+                          onPressed: () => setState(() => _showKey = !_showKey),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: _saveGroqKey,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.accent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: _saveGroqKey,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(_keySaved ? 'Saved securely ✓' : 'Save key'),
                           ),
+                          child: Text(_keySaved ? 'Saved locally ✓' : 'Save key'),
                         ),
-                        if (_hasGroqKey) ...[
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: _clearGroqKey,
-                            icon: const Icon(Icons.delete_outline, color: AppColors.impactCritical),
-                          ),
-                        ],
+                      ),
+                      if (hasKey) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: _clearGroqKey,
+                          icon: const Icon(Icons.delete_outline, color: AppColors.impactCritical),
+                        ),
                       ],
-                    ),
-                    if (_hasGroqKey)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          children: [
-                            Icon(Icons.verified_user, size: 14, color: AppColors.relevanceHigh),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Key stored in secure enclave',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: AppColors.relevanceHigh,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
+                    ],
+                  ),
                   const SizedBox(height: 28),
                   Text('Settings', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
@@ -239,9 +178,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     subtitle: storage.contentDepth == 'deep' ? '10 minutes' : '3 minutes',
                   ),
                   _SettingsTile(
-                    icon: Icons.offline_bolt,
-                    title: 'Data storage',
-                    subtitle: 'Profile local · API key encrypted',
+                    icon: Icons.phone_android,
+                    title: 'Local storage',
+                    subtitle: 'Name, interests, saved stories, API key — all on device',
                   ),
                   const SizedBox(height: 16),
                   TextButton(
