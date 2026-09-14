@@ -42,7 +42,7 @@ class _NorthstarLogoState extends State<NorthstarLogo>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.accent.withValues(alpha: 0.15 + _controller.value * 0.1),
+                color: AppColors.highlight.withValues(alpha: 0.15 + _controller.value * 0.1),
                 blurRadius: 40,
                 spreadRadius: 10,
               ),
@@ -70,18 +70,18 @@ class _StarPainter extends CustomPainter {
 
     // Outer glow ring
     final glowPaint = Paint()
-      ..color = AppColors.accent.withValues(alpha: 0.08)
+      ..color = AppColors.highlight.withValues(alpha: 0.08)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas.drawCircle(center, radius + 8, glowPaint);
 
     // 4-point north star
     final starPaint = Paint()
-      ..color = AppColors.accent
+      ..color = AppColors.highlight
       ..style = PaintingStyle.fill;
 
     final glowStarPaint = Paint()
-      ..color = AppColors.accent.withValues(alpha: 0.3)
+      ..color = AppColors.highlight.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
 

@@ -10,8 +10,8 @@ import '../../features/saved/presentation/pages/saved_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/story/presentation/pages/story_page.dart';
 import '../di/service_locator.dart';
-import '../theme/app_colors.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
+import '../../shared/widgets/floating_nav_bar.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -35,11 +35,6 @@ class AppRouter {
           builder: (_, __) => const OnboardingPage(),
         ),
         GoRoute(
-          path: '/search',
-          parentNavigatorKey: _rootNavigatorKey,
-          builder: (_, __) => const SearchPage(),
-        ),
-        GoRoute(
           path: '/story/:id',
           parentNavigatorKey: _rootNavigatorKey,
           builder: (context, state) {
@@ -49,6 +44,21 @@ class AppRouter {
               child: StoryPage(storyId: storyId),
             );
           },
+        ),
+        GoRoute(
+          path: '/discover',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const DiscoverPage(),
+        ),
+        GoRoute(
+          path: '/brief',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const BriefPage(),
+        ),
+        GoRoute(
+          path: '/profile',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (_, __) => const ProfilePage(),
         ),
         ShellRoute(
           navigatorKey: _shellNavigatorKey,
@@ -61,10 +71,8 @@ class AppRouter {
                 child: const HomePage(),
               ),
             ),
-            GoRoute(path: '/discover', builder: (_, __) => const DiscoverPage()),
-            GoRoute(path: '/brief', builder: (_, __) => const BriefPage()),
+            GoRoute(path: '/search', builder: (_, __) => const SearchPage()),
             GoRoute(path: '/saved', builder: (_, __) => const SavedPage()),
-            GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
           ],
         ),
       ],
@@ -79,10 +87,8 @@ class _AppShell extends StatelessWidget {
   int _currentIndex(BuildContext context) {
     return switch (GoRouterState.of(context).matchedLocation) {
       '/' => 0,
-      '/discover' => 1,
-      '/brief' => 2,
-      '/saved' => 3,
-      '/profile' => 4,
+      '/search' => 1,
+      '/saved' => 2,
       _ => 0,
     };
   }
@@ -90,23 +96,12 @@ class _AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0D0D0F),
       body: child,
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceElevated,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex(context),
-          onTap: (i) => context.go(['/', '/discover', '/brief', '/saved', '/profile'][i]),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore), label: 'Discover'),
-            BottomNavigationBarItem(icon: Icon(Icons.wb_sunny_outlined), activeIcon: Icon(Icons.wb_sunny), label: 'Brief'),
-            BottomNavigationBarItem(icon: Icon(Icons.bookmark_outline), activeIcon: Icon(Icons.bookmark), label: 'Saved'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-          ],
-        ),
+      extendBody: true,
+      bottomNavigationBar: FloatingNavBar(
+        currentIndex: _currentIndex(context),
+        onTap: (i) => context.go(['/', '/search', '/saved'][i]),
       ),
     );
   }

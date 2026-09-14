@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/domain/entities/story.dart';
-import '../../../../shared/widgets/story_card.dart';
+import '../../../../shared/widgets/news_card.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -19,7 +19,10 @@ class _SearchPageState extends State<SearchPage> {
 
   Future<void> _search(String query) async {
     if (query.isEmpty) {
-      setState(() { _results = []; _searched = false; });
+      setState(() {
+        _results = [];
+        _searched = false;
+      });
       return;
     }
 
@@ -31,7 +34,10 @@ class _SearchPageState extends State<SearchPage> {
           s.category.toLowerCase().contains(q);
     }).toList();
 
-    setState(() { _results = filtered; _searched = true; });
+    setState(() {
+      _results = filtered;
+      _searched = true;
+    });
   }
 
   @override
@@ -43,83 +49,73 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          controller: _controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'What happened with Flutter recently?',
-            border: InputBorder.none,
-            hintStyle: TextStyle(color: AppColors.textTertiary),
-          ),
-          style: Theme.of(context).textTheme.bodyMedium,
-          onSubmitted: _search,
-          onChanged: (v) {
-            if (v.isEmpty) setState(() { _results = []; _searched = false; });
-          },
-        ),
-        actions: [
-          IconButton(onPressed: () => _search(_controller.text), icon: const Icon(Icons.search)),
-        ],
-      ),
-      body: _searched
-          ? _results.isEmpty
-              ? Center(
-                  child: Text(
-                    'No results found',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: _results.length,
-                  itemBuilder: (context, index) {
-                    final story = _results[index];
-                    return StoryCard(
-                      story: story,
-                      onTap: () => context.push('/story/${story.id}'),
-                    );
-                  },
-                )
-          : Padding(
-              padding: const EdgeInsets.all(20),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Try asking', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 12),
-                  ...[
-                    'What are the biggest AI agent developments?',
-                    'What changed in React this month?',
-                    'Show me everything about OpenAI',
-                  ].map((q) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: GestureDetector(
-                        onTap: () { _controller.text = q; _search(q); },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: Text(
-                            q,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
+                  Text(
+                    'Search',
+                    style: Theme.of(context).textTheme.displayLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _controller,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Search news',
+                      prefixIcon: Icon(Icons.search, color: AppColors.textTertiary),
+                    ),
+                    onSubmitted: _search,
+                    onChanged: (v) {
+                      if (v.isEmpty) {
+                        setState(() {
+                          _results = [];
+                          _searched = false;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
+          ),
+          if (_searched && _results.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Text(
+                  'No stories found',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final story = _results[index];
+                    return NewsCard(
+                      story: story,
+                      colorIndex: index,
+                      compact: true,
+                      onTap: () => context.push('/story/${story.id}'),
+                    );
+                  },
+                  childCount: _results.length,
+                ),
+              ),
+            ),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+        ],
+      ),
     );
   }
 }
