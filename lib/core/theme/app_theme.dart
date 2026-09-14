@@ -33,7 +33,7 @@ abstract final class AppTheme {
         titleTextStyle: textTheme.titleMedium,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
