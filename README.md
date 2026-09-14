@@ -28,6 +28,29 @@ flutter pub get
 flutter run
 ```
 
+### iOS (physical device)
+
+Running on a real iPhone requires Apple code signing. The simulator does not.
+
+1. Open the project in Xcode:
+   ```bash
+   open ios/Runner.xcworkspace
+   ```
+2. Add your Apple ID: **Xcode → Settings → Accounts → +**
+3. Select the **Runner** target → **Signing & Capabilities**
+4. Enable **Automatically manage signing** and choose your **Team**
+5. Connect your iPhone, trust the computer on the device, then run:
+   ```bash
+   flutter run
+   ```
+
+**Optional (CLI-only):** copy `ios/Flutter/Team.xcconfig.example` to `ios/Flutter/Team.xcconfig`, set your Team ID, then run `flutter run` again. You still need an Apple ID signed into Xcode.
+
+**Simulator (no signing):**
+```bash
+flutter run -d "iPhone 16"
+```
+
 Optional: add your Groq key in **Profile** for AI-powered story explanations.
 
 ## Features
