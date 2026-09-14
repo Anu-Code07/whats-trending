@@ -24,7 +24,6 @@ WhatsTrending API  →  Flutter app  →  Your feed
 ## Run
 
 ```bash
-cd mobile
 flutter pub get
 flutter run
 ```
@@ -43,7 +42,9 @@ Optional: add your Groq key in **Profile** for AI-powered story explanations.
 ## Project structure
 
 ```
-mobile/     # Flutter app (the entire product)
+lib/        # Flutter app source
+android/    # Android platform
+ios/        # iOS platform
 docs/       # Product & design documentation
 ```
 

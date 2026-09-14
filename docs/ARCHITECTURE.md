@@ -32,7 +32,7 @@
 ## Mobile structure
 
 ```
-mobile/lib/
+lib/
 ├── core/           # theme, router, DI, constants, storage
 ├── shared/         # reusable widgets
 └── features/
