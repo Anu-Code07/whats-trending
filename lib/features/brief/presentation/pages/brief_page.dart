@@ -6,6 +6,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/category_visuals.dart';
 import '../../../../core/theme/ns_palette.dart';
 import '../../../home/domain/entities/story.dart';
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/loading_skeleton.dart';
 import '../../../../shared/widgets/orb_backdrop.dart';
 
@@ -19,6 +20,7 @@ class BriefPage extends StatefulWidget {
 class _BriefPageState extends State<BriefPage> {
   List<Story> _topStories = [];
   bool _loading = true;
+  String? _error;
   bool _playing = false;
   int _playIndex = 0;
 
@@ -29,12 +31,21 @@ class _BriefPageState extends State<BriefPage> {
   }
 
   Future<void> _loadBrief() async {
-    final brief = await ServiceLocator.feedRepository.getDailyBrief();
-    if (!mounted) return;
-    setState(() {
-      _topStories = brief.topStories;
-      _loading = false;
-    });
+    try {
+      final brief = await ServiceLocator.feedRepository.getDailyBrief();
+      if (!mounted) return;
+      setState(() {
+        _topStories = brief.topStories;
+        _error = null;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   Map<String, List<Story>> get _byCategory {
@@ -68,6 +79,20 @@ class _BriefPageState extends State<BriefPage> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: LoadingSkeleton());
+
+    if (_error != null) {
+      return Scaffold(
+        body: EmptyState(
+          title: 'Could not load tech news',
+          subtitle: _error!,
+          actionLabel: 'Retry',
+          onAction: () {
+            setState(() => _loading = true);
+            _loadBrief();
+          },
+        ),
+      );
+    }
 
     final ns = context.ns;
     final theme = Theme.of(context).textTheme;

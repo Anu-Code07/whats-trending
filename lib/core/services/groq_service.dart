@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../constants/app_constants.dart';
 
 class GroqService {
   GroqService({required this.apiKey});
 
   final String apiKey;
+  static const _apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+  static const _model = 'llama-3.3-70b-versatile';
 
   bool get isConfigured => apiKey.isNotEmpty;
 
@@ -25,13 +26,13 @@ class GroqService {
 
     try {
       final response = await http.post(
-        Uri.parse(AppConstants.groqApiUrl),
+        Uri.parse(_apiUrl),
         headers: {
           'Authorization': 'Bearer $apiKey',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'model': AppConstants.groqModel,
+          'model': _model,
           'messages': [
             {
               'role': 'system',
@@ -75,13 +76,13 @@ class GroqService {
 
     try {
       final response = await http.post(
-        Uri.parse(AppConstants.groqApiUrl),
+        Uri.parse(_apiUrl),
         headers: {
           'Authorization': 'Bearer $apiKey',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'model': AppConstants.groqModel,
+          'model': _model,
           'messages': [
             {
               'role': 'system',

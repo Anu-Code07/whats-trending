@@ -3,7 +3,15 @@ import 'package:http/http.dart' as http;
 import '../../../../core/constants/app_constants.dart';
 import '../models/story_model.dart';
 
-/// Fetches live tech/AI news directly from WhatsTrending API (no backend).
+class NewsApiException implements Exception {
+  NewsApiException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// Live tech news from the WhatsTrending API only — no generated copy.
 class WhatsTrendingDatasource {
   List<StoryModel>? _cache;
   DateTime? _cacheTime;
@@ -20,24 +28,37 @@ class WhatsTrendingDatasource {
     try {
       final response = await http.get(
         Uri.parse(AppConstants.whatsTrendingApiUrl),
-        headers: {'Accept': 'application/json'},
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Northstar/1.0',
+        },
       ).timeout(const Duration(seconds: 12));
 
       if (response.statusCode != 200) {
-        return _cache ?? [];
+        if (_cache != null) return _cache!;
+        throw NewsApiException('Tech news is unavailable right now.');
       }
 
       final json = jsonDecode(response.body) as Map<String, dynamic>;
-      if (json['success'] != true) return _cache ?? [];
+      if (json['success'] != true) {
+        if (_cache != null) return _cache!;
+        throw NewsApiException('Tech news is unavailable right now.');
+      }
 
       final data = json['data'] as List? ?? [];
-      final stories = data.map((item) => _mapArticle(item as Map<String, dynamic>)).toList();
+      final stories = data
+          .map((item) => _mapArticle(item as Map<String, dynamic>))
+          .where((story) => story.title.isNotEmpty)
+          .toList();
 
       _cache = stories;
       _cacheTime = DateTime.now();
       return stories;
+    } on NewsApiException {
+      rethrow;
     } catch (_) {
-      return _cache ?? [];
+      if (_cache != null) return _cache!;
+      throw NewsApiException('Could not load tech news. Check your connection.');
     }
   }
 
@@ -51,13 +72,17 @@ class WhatsTrendingDatasource {
     final coverage = (item['coverage'] as num?)?.toInt() ?? 1;
     final trendScore = (item['trendScore'] as num?)?.toInt() ?? 1;
     final sources = (item['sources'] as List?)?.cast<String>() ?? [];
+    final summary = item['summary'] as String? ?? '';
+    final apiWhy = item['whyItMatters'] as String? ??
+        item['why_it_matters'] as String? ??
+        '';
 
     return StoryModel(
-      id: slug.isNotEmpty ? slug : item['link'] as String,
+      id: slug.isNotEmpty ? slug : item['link'] as String? ?? slug,
       slug: slug,
       title: item['title'] as String? ?? item['originalTitle'] as String? ?? '',
-      summary: item['summary'] as String? ?? '',
-      whyItMatters: _defaultWhyItMatters(category),
+      summary: summary,
+      whyItMatters: apiWhy,
       category: category,
       sourceCount: coverage > 1 ? coverage : sources.length.clamp(1, 99),
       relevanceScore: _computeRelevance(trendScore, coverage),
@@ -104,16 +129,5 @@ class WhatsTrendingDatasource {
     if (trendScore >= 3 || coverage >= 3) return 'high';
     if (trendScore >= 2) return 'medium';
     return 'low';
-  }
-
-  String _defaultWhyItMatters(String category) {
-    return switch (category.toLowerCase()) {
-      'models' => 'A significant development in AI models that could affect how developers build with AI.',
-      'tools' => 'New developer tools can change workflows and productivity for engineering teams.',
-      'startups' => 'Startup moves signal where venture capital and innovation are heading in tech.',
-      'regulation' => 'Policy changes can reshape how AI and technology companies operate.',
-      'research' => 'Research breakthroughs often become product features within months.',
-      _ => 'This development is gaining attention across the technology community.',
-    };
   }
 }

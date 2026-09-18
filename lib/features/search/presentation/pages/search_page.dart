@@ -27,18 +27,25 @@ class _SearchPageState extends State<SearchPage> {
       return;
     }
 
-    final feed = await ServiceLocator.feedRepository.getFeed();
-    final q = query.toLowerCase();
-    final filtered = feed.stories.where((s) {
-      return s.title.toLowerCase().contains(q) ||
-          s.summary.toLowerCase().contains(q) ||
-          s.category.toLowerCase().contains(q);
-    }).toList();
+    try {
+      final feed = await ServiceLocator.feedRepository.getFeed();
+      final q = query.toLowerCase();
+      final filtered = feed.stories.where((s) {
+        return s.title.toLowerCase().contains(q) ||
+            s.summary.toLowerCase().contains(q) ||
+            s.category.toLowerCase().contains(q);
+      }).toList();
 
-    setState(() {
-      _results = filtered;
-      _searched = true;
-    });
+      setState(() {
+        _results = filtered;
+        _searched = true;
+      });
+    } catch (_) {
+      setState(() {
+        _results = [];
+        _searched = true;
+      });
+    }
   }
 
   @override

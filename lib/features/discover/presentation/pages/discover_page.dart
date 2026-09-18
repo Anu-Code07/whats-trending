@@ -17,6 +17,7 @@ class DiscoverPage extends StatefulWidget {
 
 class _DiscoverPageState extends State<DiscoverPage> {
   bool _loading = true;
+  String? _error;
   List<Story> _allStories = [];
   int _tab = 0;
 
@@ -27,13 +28,22 @@ class _DiscoverPageState extends State<DiscoverPage> {
   }
 
   Future<void> _load({bool refresh = false}) async {
-    final repo = ServiceLocator.feedRepository;
-    final stories = await repo.getTrendingFeed(forceRefresh: refresh);
-    if (!mounted) return;
-    setState(() {
-      _allStories = stories;
-      _loading = false;
-    });
+    try {
+      final repo = ServiceLocator.feedRepository;
+      final stories = await repo.getTrendingFeed(forceRefresh: refresh);
+      if (!mounted) return;
+      setState(() {
+        _allStories = stories;
+        _error = null;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   List<_Topic> get _topics {
@@ -44,9 +54,9 @@ class _DiscoverPageState extends State<DiscoverPage> {
 
     final topics = grouped.entries.map((entry) {
       final stories = entry.value;
-      final reads = stories.fold<int>(
+      final sourceCount = stories.fold<int>(
         0,
-        (sum, story) => sum + (story.trendScore * 2400) + (story.sourceCount * 380),
+        (sum, story) => sum + story.sourceCount,
       );
       final sources = stories
           .map((s) => s.primarySourceName)
@@ -56,13 +66,13 @@ class _DiscoverPageState extends State<DiscoverPage> {
       return _Topic(
         category: entry.key,
         stories: stories,
-        reads: reads.clamp(400, 99999).toInt(),
+        sourceCount: sourceCount,
         sources: sources,
       );
     }).toList();
 
     if (_tab == 1) {
-      topics.sort((a, b) => b.reads.compareTo(a.reads));
+      topics.sort((a, b) => b.sourceCount.compareTo(a.sourceCount));
     } else if (_tab == 2) {
       topics.sort((a, b) => b.stories.length.compareTo(a.stories.length));
     } else {
@@ -71,14 +81,23 @@ class _DiscoverPageState extends State<DiscoverPage> {
     return topics;
   }
 
-  String _formatReads(int reads) {
-    if (reads >= 1000) return '${(reads / 1000).toStringAsFixed(1)}k';
-    return '$reads';
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: LoadingSkeleton());
+
+    if (_error != null) {
+      return Scaffold(
+        body: EmptyState(
+          title: 'Could not load tech news',
+          subtitle: _error!,
+          actionLabel: 'Retry',
+          onAction: () {
+            setState(() => _loading = true);
+            _load(refresh: true);
+          },
+        ),
+      );
+    }
 
     final ns = context.ns;
     final topics = _topics;
@@ -156,8 +175,9 @@ class _DiscoverPageState extends State<DiscoverPage> {
                           children: [
                             DiscoverRankRow(
                               title: topic.category,
-                              subtitle:
-                                  '${topic.sources}  ·  ${_formatReads(topic.reads)} reads',
+                              subtitle: topic.sources.isEmpty
+                                  ? '${topic.sourceCount} sources'
+                                  : '${topic.sources}  ·  ${topic.sourceCount} sources',
                               rank: index + 1,
                               seed: topic.category.hashCode,
                               onTap: () =>
@@ -184,12 +204,12 @@ class _Topic {
   const _Topic({
     required this.category,
     required this.stories,
-    required this.reads,
+    required this.sourceCount,
     required this.sources,
   });
 
   final String category;
   final List<Story> stories;
-  final int reads;
+  final int sourceCount;
   final String sources;
 }

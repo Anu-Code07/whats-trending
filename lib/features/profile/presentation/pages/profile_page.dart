@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/ns_palette.dart';
@@ -15,70 +14,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late TextEditingController _groqKeyController;
-  bool _showKey = false;
-  bool _keySaved = false;
-  bool _hasGroqKey = false;
-  bool _loadingKey = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _groqKeyController = TextEditingController();
-    _loadGroqKey();
-  }
-
-  Future<void> _loadGroqKey() async {
-    final storage = ServiceLocator.storage;
-    final hasKey = await storage.hasGroqKey();
-    if (hasKey) {
-      final key = await storage.getGroqApiKey();
-      _groqKeyController.text = _maskKey(key ?? '');
-    }
-    if (!mounted) return;
-    setState(() {
-      _hasGroqKey = hasKey;
-      _loadingKey = false;
-    });
-  }
-
-  String _maskKey(String key) {
-    if (key.length <= 8) return '••••••••';
-    return '${key.substring(0, 4)}${'•' * (key.length - 8)}${key.substring(key.length - 4)}';
-  }
-
-  @override
-  void dispose() {
-    _groqKeyController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveGroqKey() async {
-    final raw = _groqKeyController.text.trim();
-    if (raw.contains('•')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your full Groq API key')),
-      );
-      return;
-    }
-    await ServiceLocator.storage.setGroqApiKey(raw);
-    setState(() {
-      _keySaved = true;
-      _hasGroqKey = raw.isNotEmpty;
-      if (_hasGroqKey) _groqKeyController.text = _maskKey(raw);
-    });
-    HapticFeedback.lightImpact();
-    Future<void>.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _keySaved = false);
-    });
-  }
-
-  Future<void> _clearGroqKey() async {
-    await ServiceLocator.storage.setGroqApiKey(null);
-    _groqKeyController.clear();
-    setState(() => _hasGroqKey = false);
-  }
-
   @override
   Widget build(BuildContext context) {
     final storage = ServiceLocator.storage;
@@ -227,68 +162,12 @@ class _ProfilePageState extends State<ProfilePage> {
                           title: 'Help & Support',
                           subtitle: '',
                         ),
-                        const SizedBox(height: 24),
-                        Text('AI Intelligence', style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Groq key stored in secure storage. Only sent to Groq.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: ns.textSecondary),
-                        ),
-                        const SizedBox(height: 12),
-                        if (_loadingKey)
-                          const Center(child: CircularProgressIndicator(color: NsPalette.accent))
-                        else ...[
-                          Container(
-                            decoration: BoxDecoration(
-                              color: ns.surface,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: ns.border),
-                            ),
-                            child: TextField(
-                              controller: _groqKeyController,
-                              obscureText: !_showKey,
-                              onTap: () {
-                                if (_groqKeyController.text.contains('•')) {
-                                  _groqKeyController.clear();
-                                }
-                              },
-                              style: Theme.of(context).textTheme.bodySmall,
-                              decoration: InputDecoration(
-                                hintText: 'gsk_...',
-                                hintStyle: TextStyle(color: ns.textTertiary),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _showKey ? Icons.visibility_off : Icons.visibility,
-                                    size: 18,
-                                    color: ns.textTertiary,
-                                  ),
-                                  onPressed: () => setState(() => _showKey = !_showKey),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: FilledButton(
-                                  onPressed: _saveGroqKey,
-                                  child: Text(_keySaved ? 'Saved securely ✓' : 'Save key'),
-                                ),
-                              ),
-                              if (_hasGroqKey) ...[
-                                const SizedBox(width: 8),
-                                IconButton(
-                                  onPressed: _clearGroqKey,
-                                  icon: const Icon(Icons.delete_outline, color: NsPalette.impactCritical),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
                         const SizedBox(height: 16),
+                        _SettingsTile(
+                          icon: Icons.rss_feed_rounded,
+                          title: 'News source',
+                          subtitle: 'WhatsTrending API',
+                        ),
                         _SettingsTile(
                           icon: Icons.tune_rounded,
                           title: 'Content depth',

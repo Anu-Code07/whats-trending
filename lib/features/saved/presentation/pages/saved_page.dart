@@ -26,12 +26,20 @@ class _SavedPageState extends State<SavedPage> {
   }
 
   Future<void> _load() async {
-    final saved = await ServiceLocator.feedRepository.getSavedStories();
-    if (!mounted) return;
-    setState(() {
-      _saved = saved;
-      _loading = false;
-    });
+    try {
+      final saved = await ServiceLocator.feedRepository.getSavedStories();
+      if (!mounted) return;
+      setState(() {
+        _saved = saved;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _saved = [];
+        _loading = false;
+      });
+    }
   }
 
   @override
