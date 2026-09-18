@@ -1,4 +1,3 @@
-import '../../../../core/services/groq_service.dart';
 import '../../../../core/storage/user_local_storage.dart';
 import '../../domain/entities/story.dart';
 import '../../domain/repositories/feed_repository.dart';
@@ -148,23 +147,9 @@ class FeedRepositoryImpl implements FeedRepository {
 
     var entity = model.toEntity().copyWith(isSaved: user.isStorySaved(id));
 
-    // Enrich with Groq if key is in secure storage
-    final groqKey = await user.getGroqApiKey();
-    if (groqKey != null && groqKey.isNotEmpty) {
-      final groq = GroqService(apiKey: groqKey);
-      final whyItMatters = await groq.enrichStory(
-        title: entity.title,
-        summary: entity.summary,
-        source: entity.primarySourceName,
-        depth: depth,
-      );
-      if (whyItMatters != null) {
-        entity = entity.copyWith(whyItMatters: whyItMatters);
-      }
-      if (depth == 'quick') {
-        final firstSentence = entity.summary.split('.').first;
-        entity = entity.copyWith(summary: '$firstSentence.');
-      }
+    if (depth == 'quick' && entity.summary.contains('.')) {
+      final firstSentence = entity.summary.split('.').first;
+      entity = entity.copyWith(summary: '$firstSentence.');
     }
 
     return entity;
