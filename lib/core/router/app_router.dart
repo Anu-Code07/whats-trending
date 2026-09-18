@@ -10,8 +10,9 @@ import '../../features/saved/presentation/pages/saved_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
 import '../../features/story/presentation/pages/story_page.dart';
 import '../di/service_locator.dart';
-import '../theme/app_colors.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
+import '../../shared/widgets/ns_bottom_nav.dart';
+import '../../shared/widgets/ns_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -27,6 +28,7 @@ class AppRouter {
 
         if (!complete && !isOnboarding) return '/onboarding';
         if (complete && isOnboarding) return '/';
+        if (state.matchedLocation == '/brief') return '/pulse';
         return null;
       },
       routes: [
@@ -37,16 +39,23 @@ class AppRouter {
         GoRoute(
           path: '/search',
           parentNavigatorKey: _rootNavigatorKey,
-          builder: (_, __) => const SearchPage(),
+          pageBuilder: (_, __) => _fadePage(const SearchPage()),
+        ),
+        GoRoute(
+          path: '/profile',
+          parentNavigatorKey: _rootNavigatorKey,
+          pageBuilder: (_, __) => _fadePage(const ProfilePage()),
         ),
         GoRoute(
           path: '/story/:id',
           parentNavigatorKey: _rootNavigatorKey,
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final storyId = state.pathParameters['id']!;
-            return BlocProvider(
-              create: (_) => ServiceLocator.createStoryBloc(storyId),
-              child: StoryPage(storyId: storyId),
+            return _fadePage(
+              BlocProvider(
+                create: (_) => ServiceLocator.createStoryBloc(storyId),
+                child: StoryPage(storyId: storyId),
+              ),
             );
           },
         ),
@@ -61,15 +70,34 @@ class AppRouter {
                 child: const HomePage(),
               ),
             ),
+            GoRoute(path: '/pulse', builder: (_, __) => const BriefPage()),
             GoRoute(path: '/discover', builder: (_, __) => const DiscoverPage()),
-            GoRoute(path: '/brief', builder: (_, __) => const BriefPage()),
             GoRoute(path: '/saved', builder: (_, __) => const SavedPage()),
-            GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
           ],
         ),
       ],
     );
   }
+}
+
+CustomTransitionPage<void> _fadePage(Widget child) {
+  return CustomTransitionPage<void>(
+    child: child,
+    transitionDuration: const Duration(milliseconds: 280),
+    transitionsBuilder: (context, animation, secondary, child) {
+      final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.04),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
 }
 
 class _AppShell extends StatelessWidget {
@@ -79,33 +107,27 @@ class _AppShell extends StatelessWidget {
   int _currentIndex(BuildContext context) {
     return switch (GoRouterState.of(context).matchedLocation) {
       '/' => 0,
-      '/discover' => 1,
-      '/brief' => 2,
+      '/pulse' => 1,
+      '/discover' => 2,
       '/saved' => 3,
-      '/profile' => 4,
       _ => 0,
     };
   }
 
+  bool _isDark(BuildContext context) {
+    return GoRouterState.of(context).matchedLocation == '/pulse';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceElevated,
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
-        ),
-        child: BottomNavigationBar(
+    final dark = _isDark(context);
+    return NsScreen(
+      dark: dark,
+      child: Scaffold(
+        body: child,
+        bottomNavigationBar: NsBottomNav(
           currentIndex: _currentIndex(context),
-          onTap: (i) => context.go(['/', '/discover', '/brief', '/saved', '/profile'][i]),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore), label: 'Discover'),
-            BottomNavigationBarItem(icon: Icon(Icons.wb_sunny_outlined), activeIcon: Icon(Icons.wb_sunny), label: 'Brief'),
-            BottomNavigationBarItem(icon: Icon(Icons.bookmark_outline), activeIcon: Icon(Icons.bookmark), label: 'Saved'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-          ],
+          onTap: (i) => context.go(['/', '/pulse', '/discover', '/saved'][i]),
         ),
       ),
     );

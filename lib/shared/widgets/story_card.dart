@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/category_visuals.dart';
+import '../../core/theme/ns_palette.dart';
 import '../../features/home/domain/entities/story.dart';
-import 'impact_pill.dart';
-import 'relevance_badge.dart';
+import 'signal_badge.dart';
+import 'story_art.dart';
 
 class StoryCard extends StatelessWidget {
   const StoryCard({
@@ -21,127 +22,256 @@ class StoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (compact) {
+      return _CompactStoryCard(story: story, onTap: onTap);
+    }
+    return _FeedStoryCard(story: story, onTap: onTap, onSave: onSave);
+  }
+}
+
+class _FeedStoryCard extends StatelessWidget {
+  const _FeedStoryCard({
+    required this.story,
+    required this.onTap,
+    this.onSave,
+  });
+
+  final Story story;
+  final VoidCallback onTap;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
+    final ns = context.ns;
     final timeAgo = _formatTimeAgo(story.publishedAt);
+    final visual = CategoryVisuals.of(story.category);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 18),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: story.relevancePercent >= 90
-                ? AppColors.relevanceHigh.withValues(alpha: 0.2)
-                : AppColors.border,
-          ),
+          color: ns.surface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: ns.border.withValues(alpha: 0.8)),
+          boxShadow: [
+            BoxShadow(
+              color: ns.cardShadow,
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                RelevanceBadge(percent: story.relevancePercent),
-                const Spacer(),
-                if (story.isBreaking)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.impactCritical.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'BREAKING',
-                      style: theme.labelSmall?.copyWith(
-                        color: AppColors.impactCritical,
-                        fontWeight: FontWeight.w700,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+              child: StoryArt(story: story, height: 148, borderRadius: 16),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(visual.icon, size: 13, color: visual.color),
+                      const SizedBox(width: 6),
+                      Text(
+                        story.category.toUpperCase(),
+                        style: theme.labelSmall?.copyWith(
+                          color: visual.color,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
                       ),
-                    ),
+                      Text(
+                        '  ·  $timeAgo',
+                        style: theme.labelSmall?.copyWith(color: ns.textTertiary),
+                      ),
+                      const Spacer(),
+                      SignalBadge(percent: story.relevancePercent),
+                    ],
                   ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              story.title,
-              style: theme.titleMedium,
-              maxLines: compact ? 2 : 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (!compact) ...[
-              const SizedBox(height: 8),
-              Text(
-                story.summary,
-                style: theme.bodySmall?.copyWith(color: AppColors.textSecondary),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _CategoryChip(label: story.category),
-                const SizedBox(width: 8),
-                Text(
-                  '${story.sourceCount} sources',
-                  style: theme.labelSmall?.copyWith(color: AppColors.textTertiary),
-                ),
-                const SizedBox(width: 8),
-                Text('·', style: TextStyle(color: AppColors.textTertiary)),
-                const SizedBox(width: 8),
-                Text(
-                  timeAgo,
-                  style: theme.labelSmall?.copyWith(color: AppColors.textTertiary),
-                ),
-                const Spacer(),
-                ImpactPill(impact: story.impact),
-                if (onSave != null) ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: onSave,
-                    child: Icon(
-                      story.isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                      size: 20,
-                      color: story.isSaved ? AppColors.accent : AppColors.textTertiary,
-                    ),
+                  const SizedBox(height: 10),
+                  Text(
+                    story.title,
+                    style: theme.titleMedium?.copyWith(fontSize: 18, height: 1.25),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    story.summary,
+                    style: theme.bodySmall?.copyWith(color: ns.textSecondary, height: 1.4),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (story.whyItMatters.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _WhyItMattersBox(text: story.whyItMatters),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text(
+                        'Read time  ${_readMinutes(story)} min',
+                        style: theme.labelSmall?.copyWith(color: ns.textTertiary),
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        'Impact  ${_impactLabel(story.impact)}',
+                        style: theme.labelSmall?.copyWith(color: ns.textTertiary),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${story.sourceCount} sources',
+                        style: theme.labelSmall?.copyWith(color: ns.textTertiary),
+                      ),
+                      if (onSave != null) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: onSave,
+                          child: Icon(
+                            story.isSaved ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+                            size: 20,
+                            color: story.isSaved ? NsPalette.accent : ns.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
-              ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-  String _formatTimeAgo(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return DateFormat('MMM d').format(date);
-  }
 }
 
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.label});
+class _CompactStoryCard extends StatelessWidget {
+  const _CompactStoryCard({required this.story, required this.onTap});
 
-  final String label;
+  final Story story;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.accentMuted,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.accent,
+    final theme = Theme.of(context).textTheme;
+    final ns = context.ns;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            StoryThumb(story: story, size: 56),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    story.title,
+                    style: theme.titleMedium?.copyWith(fontSize: 15, height: 1.3),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${story.category.toUpperCase()}  ·  ${_formatTimeAgo(story.publishedAt)}',
+                    style: theme.labelSmall?.copyWith(
+                      color: ns.textTertiary,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _WhyItMattersBox extends StatelessWidget {
+  const _WhyItMattersBox({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final ns = context.ns;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: NsPalette.accent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.auto_awesome, size: 14, color: NsPalette.accent),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Why it matters',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: NsPalette.accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: ns.textSecondary,
+                        height: 1.35,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatTimeAgo(DateTime date) {
+  final diff = DateTime.now().difference(date);
+  if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  return DateFormat('MMM d').format(date);
+}
+
+int _readMinutes(Story story) {
+  final words = story.summary.split(RegExp(r'\s+')).length;
+  return (words / 40).clamp(2, 12).round();
+}
+
+String _impactLabel(ImpactLevel impact) {
+  return switch (impact) {
+    ImpactLevel.critical => 'Critical',
+    ImpactLevel.high => 'High',
+    ImpactLevel.medium => 'Medium',
+    ImpactLevel.low => 'Low',
+  };
 }
