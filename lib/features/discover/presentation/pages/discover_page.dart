@@ -36,14 +36,44 @@ class _DiscoverPageState extends State<DiscoverPage> {
     });
   }
 
-  List<Story> get _visible {
-    final copy = List<Story>.from(_allStories);
-    if (_tab == 1) {
-      copy.sort((a, b) => b.sourceCount.compareTo(a.sourceCount));
-    } else if (_tab == 2) {
-      copy.sort((a, b) => a.primarySourceName.compareTo(b.primarySourceName));
+  List<_Topic> get _topics {
+    final grouped = <String, List<Story>>{};
+    for (final story in _allStories) {
+      grouped.putIfAbsent(story.category, () => []).add(story);
     }
-    return copy;
+
+    final topics = grouped.entries.map((entry) {
+      final stories = entry.value;
+      final reads = stories.fold<int>(
+        0,
+        (sum, story) => sum + (story.trendScore * 2400) + (story.sourceCount * 380),
+      );
+      final sources = stories
+          .map((s) => s.primarySourceName)
+          .toSet()
+          .take(3)
+          .join(' · ');
+      return _Topic(
+        category: entry.key,
+        stories: stories,
+        reads: reads.clamp(400, 99999).toInt(),
+        sources: sources,
+      );
+    }).toList();
+
+    if (_tab == 1) {
+      topics.sort((a, b) => b.reads.compareTo(a.reads));
+    } else if (_tab == 2) {
+      topics.sort((a, b) => b.stories.length.compareTo(a.stories.length));
+    } else {
+      topics.sort((a, b) => b.stories.first.trendScore.compareTo(a.stories.first.trendScore));
+    }
+    return topics;
+  }
+
+  String _formatReads(int reads) {
+    if (reads >= 1000) return '${(reads / 1000).toStringAsFixed(1)}k';
+    return '$reads';
   }
 
   @override
@@ -51,7 +81,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
     if (_loading) return const Scaffold(body: LoadingSkeleton());
 
     final ns = context.ns;
-    final stories = _visible;
+    final topics = _topics;
 
     return Scaffold(
       body: SafeArea(
@@ -108,7 +138,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
                   ),
                 ),
               ),
-              if (stories.isEmpty)
+              if (topics.isEmpty)
                 const SliverFillRemaining(
                   child: EmptyState(
                     title: 'Nothing trending yet',
@@ -121,20 +151,24 @@ class _DiscoverPageState extends State<DiscoverPage> {
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        final story = stories[index];
+                        final topic = topics[index];
                         return Column(
                           children: [
                             DiscoverRankRow(
-                              story: story,
+                              title: topic.category,
+                              subtitle:
+                                  '${topic.sources}  ·  ${_formatReads(topic.reads)} reads',
                               rank: index + 1,
-                              onTap: () => context.push('/story/${story.id}'),
+                              seed: topic.category.hashCode,
+                              onTap: () =>
+                                  context.push('/story/${topic.stories.first.id}'),
                             ),
-                            if (index != stories.length - 1)
+                            if (index != topics.length - 1)
                               Divider(height: 1, color: ns.border),
                           ],
                         );
                       },
-                      childCount: stories.length,
+                      childCount: topics.length,
                     ),
                   ),
                 ),
@@ -144,4 +178,18 @@ class _DiscoverPageState extends State<DiscoverPage> {
       ),
     );
   }
+}
+
+class _Topic {
+  const _Topic({
+    required this.category,
+    required this.stories,
+    required this.reads,
+    required this.sources,
+  });
+
+  final String category;
+  final List<Story> stories;
+  final int reads;
+  final String sources;
 }

@@ -7,7 +7,7 @@ class GlassStackHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 280,
+      height: 220,
       child: Stack(
         alignment: Alignment.center,
         children: [

@@ -172,65 +172,72 @@ class _WelcomeStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  gradient: const LinearGradient(
-                    colors: [NsPalette.accentBright, NsPalette.accentDeep],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        gradient: const LinearGradient(
+                          colors: [NsPalette.accentBright, NsPalette.accentDeep],
+                        ),
+                      ),
+                      child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      AppConstants.appName,
+                      style: theme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 36),
+                Text(
+                  AppConstants.headline,
+                  style: theme.displayLarge?.copyWith(
+                    fontSize: 40,
+                    fontWeight: FontWeight.w700,
+                    height: 1.08,
+                    letterSpacing: -1.2,
                   ),
                 ),
-                child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                AppConstants.appName,
-                style: theme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            AppConstants.headline,
-            style: theme.displayLarge?.copyWith(
-              fontSize: 40,
-              fontWeight: FontWeight.w700,
-              height: 1.08,
-              letterSpacing: -1.2,
+                const SizedBox(height: 14),
+                Text(
+                  AppConstants.subtitle,
+                  style: theme.bodyMedium?.copyWith(
+                    color: context.ns.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const GlassStackHero(),
+                NsPrimaryButton(
+                  label: 'Get Started',
+                  onPressed: onStart,
+                ),
+                const SizedBox(height: 14),
+                Center(
+                  child: Text(
+                    'No account needed · Your data stays on device',
+                    style: theme.labelSmall?.copyWith(color: context.ns.textTertiary),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
             ),
           ),
-          const SizedBox(height: 14),
-          Text(
-            AppConstants.subtitle,
-            style: theme.bodyMedium?.copyWith(
-              color: context.ns.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          const GlassStackHero(),
-          NsPrimaryButton(
-            label: 'Get Started',
-            onPressed: onStart,
-          ),
-          const SizedBox(height: 14),
-          Center(
-            child: Text(
-              'No account needed · Your data stays on device',
-              style: theme.labelSmall?.copyWith(color: context.ns.textTertiary),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -316,8 +323,8 @@ class _InterestsStep extends StatelessWidget {
           Expanded(
             child: GridView.builder(
               itemCount: AppConstants.featuredInterests.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 120,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
                 childAspectRatio: 1,
