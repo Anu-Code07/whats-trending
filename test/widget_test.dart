@@ -13,5 +13,7 @@ void main() {
     await tester.pumpWidget(const NorthstarApp());
     await tester.pump();
     expect(find.byType(NorthstarApp), findsOneWidget);
+    expect(find.textContaining('Tech news'), findsOneWidget);
+    expect(find.text('Get Started'), findsOneWidget);
   });
 }

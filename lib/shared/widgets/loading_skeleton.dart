@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/ns_palette.dart';
 
 class LoadingSkeleton extends StatefulWidget {
   const LoadingSkeleton({super.key, this.count = 4});
@@ -31,6 +31,7 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
 
   @override
   Widget build(BuildContext context) {
+    final ns = context.ns;
     return ListView.builder(
       padding: const EdgeInsets.all(20),
       itemCount: widget.count,
@@ -43,10 +44,10 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
                 return LinearGradient(
                   begin: Alignment(-1 + _controller.value * 2, 0),
                   end: Alignment(1 + _controller.value * 2, 0),
-                  colors: const [
-                    AppColors.surface,
-                    AppColors.surfaceElevated,
-                    AppColors.surface,
+                  colors: [
+                    ns.surface,
+                    ns.surfaceElevated,
+                    ns.surface,
                   ],
                 ).createShader(bounds);
               },
@@ -54,11 +55,11 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
             );
           },
           child: Container(
-            height: 140,
-            margin: const EdgeInsets.only(bottom: 12),
+            height: 220,
+            margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              color: ns.surface,
+              borderRadius: BorderRadius.circular(22),
             ),
           ),
         );

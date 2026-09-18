@@ -8,12 +8,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ServiceLocator.init();
 
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ),
-  );
+  SystemChrome.setSystemUIOverlayStyle(AppTheme.overlayFor(Brightness.dark));
 
   runApp(const NorthstarApp());
 }
@@ -26,7 +21,9 @@ class NorthstarApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Northstar',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.light,
       routerConfig: AppRouter.create(),
     );
   }

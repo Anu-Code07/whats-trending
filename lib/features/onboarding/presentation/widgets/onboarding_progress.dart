@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/ns_palette.dart';
 
 class OnboardingProgress extends StatelessWidget {
   const OnboardingProgress({
@@ -27,8 +27,8 @@ class OnboardingProgress extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
             color: isActive || isPast
-                ? AppColors.accent
-                : AppColors.border,
+                ? NsPalette.accent
+                : context.ns.border,
           ),
         );
       }),
